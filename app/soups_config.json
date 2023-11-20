@@ -1,0 +1,14 @@
+{
+    "otomoto": {
+        "price": "offer-price__number",
+        "brand": "Marka pojazdu",
+        "model": "Model pojazdu",
+        "year": "Rok produkcji",
+        "mileage": "Przebieg",
+        "capacity": "Pojemność skokowa",
+        "fuel": "Rodzaj paliwa",
+        "power": "Moc",
+        "gearbox": "Skrzynia biegów"
+    }
+}
+
