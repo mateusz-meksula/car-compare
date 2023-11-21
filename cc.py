@@ -119,13 +119,10 @@ class CarCompare(argparse.ArgumentParser):
 
     async def __call__(self) -> None:
         pages_content = await get_pages_content(self.urls)
-        cars_data = [
-            factory.SoupFactory(
-                url=url,
-                page_content=page_content,
-            )().get_car_data()
-            for url, page_content in zip(self.urls, pages_content)
-        ]
+        cars_data = []
+        for url, page_content in zip(self.urls, pages_content):
+            soup = factory.SoupFactory(url, page_content).get_soup()
+            cars_data.append(soup.get_car_data())
 
         record = self.with_file
         console = Console(record=record)

@@ -1,5 +1,4 @@
 import re
-from dataclasses import dataclass
 
 from .soups import ServiceSoup
 
@@ -16,15 +15,13 @@ def extract_service_name(url: str) -> str:
     return match.group(1)  # type: ignore
 
 
-@dataclass
 class SoupFactory:
-    url: str
-    page_content: str
+    def __init__(self, url: str, page_content: str) -> None:
+        self.url = url
+        self.page_content = page_content
+        self.service_name = extract_service_name(url)
 
-    def __post_init__(self):
-        self.service_name = extract_service_name(self.url)
-
-    def __call__(self) -> ServiceSoup:
+    def get_soup(self) -> ServiceSoup:
         return FACTORIES[self.service_name](
             url=self.url,
             markup=self.page_content,

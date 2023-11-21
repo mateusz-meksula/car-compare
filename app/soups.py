@@ -24,11 +24,7 @@ class CarData(TypedDict):
 
 
 class ServiceSoup(BeautifulSoup, ABC):
-    def __init__(
-        self,
-        url: str,
-        markup: str,
-    ) -> None:
+    def __init__(self, url: str, markup: str) -> None:
         super().__init__(markup, "html.parser")
         self.url = url
 
