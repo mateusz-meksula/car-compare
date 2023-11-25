@@ -1,18 +1,21 @@
 import re
 
-from .soups import ServiceSoup
+from cc import SupportedSites
 
-FACTORIES: dict[str, type[ServiceSoup]] = {}
+from .soups import ServiceSoup, OtoMotoSoup
+
+FACTORIES: dict[SupportedSites, type[ServiceSoup]] = {}
 
 
-def register_soup(site: str, service_soup: type[ServiceSoup]):
+def register_soup(site: SupportedSites, service_soup: type[ServiceSoup]):
     FACTORIES[site] = service_soup
 
 
-def extract_service_name(url: str) -> str:
+def extract_service_name(url: str) -> SupportedSites:
     pattern = r"https://(?:www\.)?(\w+)\.\w+"
     match = re.match(pattern, url)
-    return match.group(1)  # type: ignore
+    site_str = match.group(1)  # type: ignore
+    return SupportedSites(site_str)
 
 
 class SoupFactory:
@@ -26,3 +29,6 @@ class SoupFactory:
             url=self.url,
             markup=self.page_content,
         )
+
+
+register_soup(SupportedSites.OTOMOTO, OtoMotoSoup)

@@ -5,7 +5,6 @@ from typing import TypedDict
 
 from bs4 import BeautifulSoup
 
-from . import errors
 
 with open("./app/soups_config.json", encoding="utf-8") as f:
     soups_config = json.load(f)
@@ -50,7 +49,11 @@ class OtoMotoSoup(ServiceSoup):
         price_class_name = mapping.pop("price")
         price_tag = self.find("h3", class_=price_class_name)
         if price_tag is None:
-            errors.InvalidPageContent(self.url)
+            raise SystemExit(
+                f"""
+    Application was unable to obtain offer data from URL: {self.url}
+                """
+            )
         car_data["price"] = price_tag.get_text() + " PLN"
 
         for k, v in mapping.items():

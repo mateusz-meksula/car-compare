@@ -1,8 +1,6 @@
 import asyncio
 import aiohttp
 
-from . import errors
-
 
 class StatusNot200(Exception):
     def __init__(self, url, status_code) -> None:
@@ -23,5 +21,10 @@ async def get_pages_content(urls: list[str]):
     try:
         pages_contents = await asyncio.gather(*[fetch(url) for url in urls])
     except StatusNot200 as exc:
-        errors.FetchFailed(exc.url, exc.status_code)
+        raise SystemExit(
+            f"""
+    Request to {exc.url} failed.
+    Status code: {exc.status_code}
+            """
+        )
     return pages_contents

@@ -1,4 +1,4 @@
-r"""[bold][blue]
+"""
 ┌───────────────────────────────────────────────────────────────────────────────┐
 │    _|_|_|                                                                     │
 │  _|          _|_|_|  _|  _|_|                                                 │
@@ -13,138 +13,101 @@ r"""[bold][blue]
 │                                      _|                                       │
 │                                      _|                                       │
 └───────────────────────────────────────────────────────────────────────────────┘
-[/bold]
 
-for help, type [yellow]python cc.py --help[/yellow]
+Created by Mati
 """  # noqa: E501
 
 
-import argparse
 import asyncio
 import re
-import time
 
-from rich import print
+from enum import Enum
+
 from rich.console import Console
-from rich_argparse import RichHelpFormatter
 
-from app import errors, factory, soups
+from app import factory, soups
 from app.aio import get_pages_content
 from app.report import Report
 
 
-SUPPORTED_SITES = ["otomoto"]
+class SupportedSites(Enum):
+    OTOMOTO = "otomoto"
+
+    def __str__(self) -> str:
+        return self.value
+
 
 URL_PATTERN = re.compile(r"https://(?:www\.)?(\w+)\.\w+")
 
 
-console = Console()
+def show_welcome_message() -> None:
+    print(__doc__)
 
-factory.register_soup("otomoto", soups.OtoMotoSoup)
 
+def validate_url(url: str) -> tuple[bool, str | None]:
+    match = re.match(URL_PATTERN, url)
 
-def validate_offers_number(value):
+    if not match:
+        return False, "Invalid URL"
+
+    site_name = match.group(1)
     try:
-        value = int(value)
+        SupportedSites(site_name)
     except ValueError:
-        errors.OffersNotAnInteger(value)
+        return False, f"{site_name!r} is not supported"
 
-    if value < 2:
-        errors.OffersLessThat2(value)
-
-    return value
+    return True, None
 
 
-class CarCompare(argparse.ArgumentParser):
-    offers: int
-    with_file: bool
-    urls: list[str]
+def get_urls() -> list[str]:
+    print("Please enter offers' URLs:")
 
-    def __init__(self) -> None:
-        super().__init__(
-            usage="cc.py offers [-h] [-f]",
-            formatter_class=RichHelpFormatter,
-        )
-
-        self.add_argument(
-            "offers",
-            nargs="?",
-            type=validate_offers_number,
-            help="Number of car offers. Must be an integer greater than 1.",  # noqa: E501
-        )
-        self.add_argument(
-            "-f",
-            "--file",
-            help="If present, application will save report to an HTML file.",  # noqa: E501
-            action="store_true",
-        )
-
-        args = self.parse_args()
-
-        self.offers = args.offers
-        if self.offers is None:
-            print(__doc__)
-            quit()
-
-        self.with_file = args.file
-        self.urls = []
-        self.get_offers_urls()
-
-    def get_offers_urls(self) -> None:
-        num = 1
-        print("\n[blue]Please enter offers' URLs:")
-        while len(self.urls) < self.offers:
-            user_url = console.input(f"[blue]{num} -> : ")
-            if not self._validate_url(user_url):
-                errors.invalid_url()
+    num = 1
+    urls = []
+    while True:
+        url = input(f"{num}: ")
+        if url == "done":
+            if len(urls) < 2:
+                print("You have to provide at least 2 URLs")
                 continue
             else:
-                self.urls.append(user_url)
-                num += 1
+                break
 
-    def _validate_url(self, url: str) -> bool:
-        if url in self.urls:
-            return False
+        is_valid_url, msg = validate_url(url)
+        if not is_valid_url:
+            print(msg)
+            continue
 
-        match = re.match(URL_PATTERN, url)
-
-        if not match:
-            return False
-
-        site_name = match.group(1)
-        if site_name not in SUPPORTED_SITES:
-            return False
-
-        return True
-
-    async def __call__(self) -> None:
-        pages_content = await get_pages_content(self.urls)
-        cars_data = []
-        for url, page_content in zip(self.urls, pages_content):
-            soup = factory.SoupFactory(url, page_content).get_soup()
-            cars_data.append(soup.get_car_data())
-
-        record = self.with_file
-        console = Console(record=record)
-        report = Report(cars_data)  # type: ignore
-        print()
-        console.print(report)
-        if self.with_file:
-            console.save_html("report.html")
+        urls.append(url)
+        num += 1
+    return urls
 
 
-def exit_app():
-    print("\n")
-    print("Exiting", end="")
-    for _ in range(3):
-        time.sleep(0.3)
-        print(".", flush=True, end="")
-    quit()
+def get_cars_data(urls: list[str], pages: list[str]) -> list[soups.CarData]:
+    cars_data = []
+    for url, page_content in zip(urls, pages):
+        soup = factory.SoupFactory(url, page_content).get_soup()
+        cars_data.append(soup.get_car_data())
+    return cars_data
+
+
+def print_report(cars_data: list[soups.CarData]):
+    console = Console(record=True)
+    report = Report(cars_data)  # type: ignore
+    console.print(report)
+
+    to_file = input("Write report to file? Y/N: ")
+    if to_file.upper() == "Y":
+        console.save_html("report.html")
+
+
+async def main():
+    show_welcome_message()
+    urls = get_urls()
+    pages = await get_pages_content(urls)
+    cars_data = get_cars_data(urls, pages)
+    print_report(cars_data)
 
 
 if __name__ == "__main__":
-    try:
-        app = CarCompare()
-        asyncio.run(app())
-    except KeyboardInterrupt:
-        exit_app()
+    asyncio.run(main())
