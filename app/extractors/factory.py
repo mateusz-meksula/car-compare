@@ -1,13 +1,17 @@
 import re
 
-from cc import SupportedSites
+from app.app_config import SupportedSites
 
-from .soups import ServiceSoup, OtoMotoSoup
-
-FACTORIES: dict[SupportedSites, type[ServiceSoup]] = {}
+from .extractors import OtoMotoOfferExtractor, ServiceOfferExtractor
 
 
-def register_soup(site: SupportedSites, service_soup: type[ServiceSoup]):
+FACTORIES: dict[SupportedSites, type[ServiceOfferExtractor]] = {}
+
+
+def register_soup(
+    site: SupportedSites,
+    service_soup: type[ServiceOfferExtractor],
+):
     FACTORIES[site] = service_soup
 
 
@@ -18,17 +22,17 @@ def extract_service_name(url: str) -> SupportedSites:
     return SupportedSites(site_str)
 
 
-class SoupFactory:
+class OfferExtractorFactory:
     def __init__(self, url: str, page_content: str) -> None:
         self.url = url
         self.page_content = page_content
         self.service_name = extract_service_name(url)
 
-    def get_soup(self) -> ServiceSoup:
+    def make_extractor(self) -> ServiceOfferExtractor:
         return FACTORIES[self.service_name](
             url=self.url,
             markup=self.page_content,
         )
 
 
-register_soup(SupportedSites.OTOMOTO, OtoMotoSoup)
+register_soup(SupportedSites.OTOMOTO, OtoMotoOfferExtractor)

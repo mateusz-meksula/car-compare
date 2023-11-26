@@ -6,8 +6,11 @@ from typing import TypedDict
 from bs4 import BeautifulSoup
 
 
-with open("./app/soups_config.json", encoding="utf-8") as f:
-    soups_config = json.load(f)
+CONFIG_FILE = "./app/extractors/extractors_config.json"
+
+
+with open(CONFIG_FILE, encoding="utf-8") as f:
+    extractors_config = json.load(f)
 
 
 class CarData(TypedDict):
@@ -22,7 +25,7 @@ class CarData(TypedDict):
     gearbox: str
 
 
-class ServiceSoup(BeautifulSoup, ABC):
+class ServiceOfferExtractor(BeautifulSoup, ABC):
     def __init__(self, url: str, markup: str) -> None:
         super().__init__(markup, "html.parser")
         self.url = url
@@ -37,10 +40,10 @@ class ServiceSoup(BeautifulSoup, ABC):
         ...
 
 
-class OtoMotoSoup(ServiceSoup):
+class OtoMotoOfferExtractor(ServiceOfferExtractor):
     @property
     def config(self) -> dict[str, str]:
-        return soups_config["otomoto"]
+        return extractors_config["otomoto"]
 
     def get_car_data(self) -> CarData:
         car_data: CarData = {}  # type: ignore
